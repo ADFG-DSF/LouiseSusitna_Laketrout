@@ -18,8 +18,8 @@ library(MCMCpack)
 
 lakenames <- c("Louise", "Susitna")
 lakeareas <- c(5913, 3635)
-# ilake <- 1
-ilake <- 2
+ilake <- 1
+# ilake <- 2
 
 newlake_la <- lakeareas[ilake]
 
@@ -162,10 +162,15 @@ C_wts <- justCrosswind$Weight_g
 # note: these will be applied to the vector of predicted YP simulated earlier
 
 #### FINAL WORST-CASE SCENARIO TO PUT IN THE OP PLAN:
-#### - weight adjustment of 67% & 133%  (mean weight of March sample is twice as big as June)
-#### - beta parameters of 20 (80% chance that March harvest is between 40% and 60% of total)
+#### * weight adjustments of 50% & 150%
+####   - mean weight of June sample is half that of April
+####   - mean weight of December sample is 50% greater than that of April
+#### * beta parameters of 20, 25, and 5
+####   - assuming that 40%, 50%, and 10% of harvest occurs in the April, June, and December periods, respectively
+####   - 80% chance of 31-49%, 41-59% and 5-16% of harvest in the April, June, and December periods, respectively
+####   - 95% chance of 27-54%, 36-67% and 3-20% of harvest in the April, June, and December periods, respectively
 
-strat_wts <- c(2, 3, 1)   ## relative weights for each stratum
+strat_wts <- c(4, 5, 1)   ## relative weights for each stratum
 wt_adj <- 1 + c(0, -1, 1)*0.5  ## (multiplicative) weight adjustment for each stratum?
 betap_fixed <- 20
 nsim <- 10000

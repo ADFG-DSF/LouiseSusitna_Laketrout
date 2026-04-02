@@ -57,6 +57,7 @@ se(justCrosswind$Weight_g)  # 105.561
 tapply(justCrosswind$Weight_g,
        justCrosswind$ProjectTitle,
        mean) %>% as.numeric %>% (\(x) x[1]/x[2]) # 1.268316
+# mean weight in winter was 27% higher than summer
 
 table(justCrosswind$ProjectTitle)
 boxplot(justCrosswind$Weight_g ~ justCrosswind$ProjectTitle)
@@ -77,8 +78,12 @@ n3 <- 100
 # from email:
 # "My guess is that overall, harvest is highest in summer, followed by April
 # (mid-late winter, and lowest in December (early winter)."
+# Update:
+# 50/50 split summer/winter, will say 4:1 early/late winter
+# this gives 40%, 50%, 10% split
 ## note: these are normalized
-strat_wts <- c(2, 3, 1)  # 7.4%
+strat_wts <- c(4, 5, 1)  # 8.3%
+# strat_wts <- c(2, 3, 1)  # 7.4%
 # strat_wts <- c(1, 1, 1)  # 7.8%
 # strat_wts <- c(1, 0.5, 1.5)  # 8.8%
 # strat_wts <- rev(c(1, 0.5, 1.5))  # 8.3%
@@ -90,8 +95,8 @@ strat_wts <- c(2, 3, 1)  # 7.4%
 # "I think that the length distribution will be largest during the December
 # (early winter) sampling event, followed by the April (late winter), and
 # smallest in June."
-# wt_adj <- c(1, 0.5, 1.5)    # 7.4% with strat_wts = 2, 3, 1
-wt_adj <- c(1, 1, 1)    # 7.8% with strat_wts = 2, 3, 1
+wt_adj <- c(1, 0.5, 1.5)    # 7.9% with strat_wts = 4, 5, 1
+# wt_adj <- c(1, 1, 1)    # 8.3% with strat_wts = 4, 5, 1
 
 nsim <- 10000
 av_wt1 <- av_wt2 <- av_wt3 <- est_mn <- rep(NA, nsim)  # initializing vectors
@@ -114,40 +119,54 @@ quantile(abs(est_mn-mn_true)/mn_true, .95)
 
 ## let's try a bunch of versions of weight adjustment..
 adj_amount <- seq(0, .99, by=.01)  # multiplicative adjustment amounts to consider
-quantile_vec <- rep(NA, length(adj_amount))  # corresponding vector of 95th percentile values of relative accuracy
-strat_wts_list <- list(c(1, 1, 1),
-                       c(1.5, 2, 1),
+# quantile_vec <- rep(NA, length(adj_amount))  # corresponding vector of 95th percentile values of relative accuracy
+quantile_vecs <- list()
+# strat_wts_list <- list(c(1, 1, 1),
+#                        c(1.5, 2, 1),
+#                        c(2, 3, 1),
+#                        c(3, 5, 1))
+strat_wts_list <- list(c(1, 2, 1),
                        c(2, 3, 1),
-                       c(3, 5, 1))
+                       c(4, 5, 1),
+                       c(9, 10, 1))
 par(mfrow=c(2,2))
 for(i_strat in seq_along(strat_wts_list)) {
   strat_wts <- strat_wts_list[[i_strat]]
-for(i_amount in seq_along(adj_amount)) {
-  # strat_wts <- c(1, 1, 1)  ## relative weights for each stratum
-  # strat_wts <- c(2, 3, 1)  ## relative weights for each stratum
-  # strat_wts <- c(3, 5, 1)  ## relative weights for each stratum
-  wt_adj <- 1 + c(0, -1, 1)*adj_amount[i_amount]  ## (multiplicative) weight adjustment for each stratum?
+  quantile_vecs[[i_strat]] <- rep(NA, length(adj_amount))
+  for(i_amount in seq_along(adj_amount)) {
+    # strat_wts <- c(1, 1, 1)  ## relative weights for each stratum
+    # strat_wts <- c(2, 3, 1)  ## relative weights for each stratum
+    # strat_wts <- c(3, 5, 1)  ## relative weights for each stratum
+    wt_adj <- 1 + c(0, -1, 1)*adj_amount[i_amount]  ## (multiplicative) weight adjustment for each stratum?
 
-  nsim <- 10000
-  av_wt1 <- av_wt2 <- av_wt3 <- est_mn <- rep(NA, nsim)  # initializing vectors
-  for(i_sim in 1:nsim) {
-    av_wt1[i_sim] <- mean(sample(C_wts*wt_adj[1], size=n1, replace=TRUE))
-    av_wt2[i_sim] <- mean(sample(C_wts*wt_adj[2], size=n2, replace=TRUE))
-    av_wt3[i_sim] <- mean(sample(C_wts*wt_adj[3], size=n3, replace=TRUE))
-    est_mn[i_sim] <- sum(c(av_wt1[i_sim], av_wt2[i_sim], av_wt3[i_sim]) *
-                           strat_wts/sum(strat_wts))
+    nsim <- 10000
+    av_wt1 <- av_wt2 <- av_wt3 <- est_mn <- rep(NA, nsim)  # initializing vectors
+    for(i_sim in 1:nsim) {
+      av_wt1[i_sim] <- mean(sample(C_wts*wt_adj[1], size=n1, replace=TRUE))
+      av_wt2[i_sim] <- mean(sample(C_wts*wt_adj[2], size=n2, replace=TRUE))
+      av_wt3[i_sim] <- mean(sample(C_wts*wt_adj[3], size=n3, replace=TRUE))
+      est_mn[i_sim] <- sum(c(av_wt1[i_sim], av_wt2[i_sim], av_wt3[i_sim]) *
+                             strat_wts/sum(strat_wts))
+    }
+    mn_true <- sum(strat_wts*wt_adj*mean(C_wts)/sum(strat_wts))
+    quantile_vecs[[i_strat]][i_amount] <- quantile(abs(est_mn-mn_true)/mn_true, .95)
   }
-  mn_true <- sum(strat_wts*wt_adj*mean(C_wts)/sum(strat_wts))
-  quantile_vec[i_amount] <- quantile(abs(est_mn-mn_true)/mn_true, .95)
-}
 
-# slight increase in uncertainty (decrease in precision) when the adjustment
-# amount goes up (that is, samples have greater difference in means)
-# par(mfrow=c(1,1))
-plot(adj_amount, quantile_vec)
-# abline(v=0.25)
-# abline(h=0.077)
+  # Depends on stratification weights.  Differences in mean weights that are similar to stratification weights seem
+  # to result in more precise estimates?
 }
+for(iplot in seq_along(quantile_vecs)) {
+  plot(adj_amount, quantile_vecs[[iplot]],
+       ylim=range(unlist(quantile_vecs)),
+       main=paste(strat_wts_list[[iplot]], collapse=", "))
+  grid()
+}
+sapply(quantile_vecs, \(x) x[adj_amount==0])
+sapply(quantile_vecs, \(x) x[adj_amount==0.25])
+sapply(quantile_vecs, \(x) x[adj_amount==0.5])
+sapply(quantile_vecs, \(x) x[adj_amount==0.75])
+
+
 
 ## now let's try a bunch of versions of TRUE strat_wts...
 # this is done by drawing random samples from a Beta distribution centered at 50%
@@ -164,7 +183,7 @@ plot(adj_amount, quantile_vec)
 #        legend=paste0("beta(", bp, ",", bp, ")"))
 
 par(mfrow=c(2,2))
-base_wts <- c(2, 3, 1)/2
+base_wts <- c(4, 5, 1)/4
 dirmult <- c(50, 20, 10, 5)
 for(i in seq_along(dirmult)) {
   dirparms <- dirmult[i]*base_wts
@@ -185,20 +204,20 @@ apply(rdirichlet(100000, 20*base_wts),
       quantile, c(0.025, 0.1, 0.5, 0.9, 0.975)) %>%
   round(3)
 #        [,1]  [,2]  [,3]
-# 2.5%  0.220 0.374 0.085
-# 10%   0.257 0.417 0.108
-# 50%   0.332 0.500 0.163
-# 90%   0.413 0.582 0.230
-# 97.5% 0.457 0.625 0.270
+# 2.5%  0.270 0.364 0.034
+# 10%   0.312 0.410 0.051
+# 50%   0.399 0.500 0.095
+# 90%   0.489 0.590 0.156
+# 97.5% 0.538 0.636 0.196
 
 
 ## ok let's actually do it now
 betap <- 5:50 # candidate values for beta parameters (Dirichlet in this case)
-base_wts <- c(2, 3, 1)/2
+base_wts <- c(4, 5, 1)/4
 quantile_vec <- rep(NA, length(betap))
 for(i_amount in seq_along(betap)) {
   # strat_wts <- c(1, 1, 1)  ## relative weights for each stratum
-  strat_wts <- c(2, 3, 1)  ## relative weights for each stratum
+  strat_wts <- c(4, 5, 1)  ## relative weights for each stratum
   # strat_wts <- c(3, 5, 1)  ## relative weights for each stratum
   wt_adj <- 1 + c(0, -1, 1)*0.5  ## (multiplicative) weight adjustment for each stratum?
 
@@ -229,13 +248,97 @@ plot(betap, quantile_vec)
 ## just as expected, precision gets better as Dirichlet parameters get bigger
 
 
-#### FINAL WORST-CASE SCENARIO TO PUT IN THE OP PLAN:
-#### - weight adjustment of 67% & 133%  (mean weight of March sample is twice as big as June)
-#### - beta parameters of 20 (80% chance that March harvest is between 40% and 60% of total)
+# ok, let's do the previous strat weights / weight adjustment thing under
+# a few logical Dirichlet params
+par(mfrow=c(2,2))
+betap <- c(500, 20, 10, 5)
+quantile_vecs <- list()
+for(i_beta in seq_along(betap)) {
+  ## let's try a bunch of versions of weight adjustment..
+  adj_amount <- seq(0, .95, by=.05)  # multiplicative adjustment amounts to consider
+  # quantile_vec <- rep(NA, length(adj_amount))  # corresponding vector of 95th percentile values of relative accuracy
+  quantile_vecs[[i_beta]] <- list()
+  strat_wts_list <- list(c(1, 2, 1),
+                         c(2, 3, 1),
+                         c(4, 5, 1),
+                         c(9, 10, 1))
+  dir_wts_list <- list(c(1, 2, 1),
+                       c(2, 3, 1)/2,
+                       c(4, 5, 1)/4,
+                       c(9, 10, 1)/9)
+  par(mfrow=c(2,2))
+  for(i_strat in seq_along(strat_wts_list)) {
+    strat_wts <- strat_wts_list[[i_strat]]
+    quantile_vecs[[i_beta]][[i_strat]] <- rep(NA, length(adj_amount))
+    for(i_amount in seq_along(adj_amount)) {
+      # strat_wts <- c(1, 1, 1)  ## relative weights for each stratum
+      # strat_wts <- c(2, 3, 1)  ## relative weights for each stratum
+      # strat_wts <- c(3, 5, 1)  ## relative weights for each stratum
+      wt_adj <- 1 + c(0, -1, 1)*adj_amount[i_amount]  ## (multiplicative) weight adjustment for each stratum?
 
-strat_wts <- c(2, 3, 1)   ## relative weights for each stratum
+      nsim <- 10000
+      av_wt1 <- av_wt2 <- av_wt3 <- est_mn <- rep(NA, nsim)  # initializing vectors
+      for(i_sim in 1:nsim) {
+        av_wt1[i_sim] <- mean(sample(C_wts*wt_adj[1], size=n1, replace=TRUE))
+        av_wt2[i_sim] <- mean(sample(C_wts*wt_adj[2], size=n2, replace=TRUE))
+        av_wt3[i_sim] <- mean(sample(C_wts*wt_adj[3], size=n3, replace=TRUE))
+        est_mn[i_sim] <- sum(c(av_wt1[i_sim], av_wt2[i_sim], av_wt3[i_sim]) *
+                               strat_wts/sum(strat_wts))
+      }
+      # dirsim <- rdirichlet(nsim, betap[i_beta]*base_wts)
+      dirsim <- rdirichlet(nsim, betap[i_beta]*dir_wts_list[[i_strat]])
+      mn_true <- rep(NA, nsim)
+      for(i in 1:nsim) {
+        strat_wts_true <- dirsim[i,]
+        mn_true[i] <- sum(strat_wts_true*wt_adj*mean(C_wts)/sum(strat_wts_true))
+      }
+      quantile_vecs[[i_beta]][[i_strat]][i_amount] <- quantile(abs(est_mn-mn_true)/mn_true, .95)
+    }
+
+    # slight increase in uncertainty (decrease in precision) when the adjustment
+    # amount goes up (that is, samples have greater difference in means)
+    # par(mfrow=c(1,1))
+    # plot(adj_amount, quantile_vec)
+    # abline(v=0.25)
+    # abline(h=0.077)
+  }
+}
+
+par(mfrow=c(2,2))
+for(i_beta in seq_along(betap)) {
+  for(i_strat in seq_along(quantile_vecs[[i_beta]])) {
+    plot(adj_amount, quantile_vecs[[i_beta]][[iplot]],
+         # ylim=range(unlist(quantile_vecs)),
+         ylim=c(0, 0.25),
+         main=c(betap[i_beta],
+                paste(strat_wts_list[[i_strat]], collapse=", ")))
+    grid()
+    abline(v=0.5)
+    abline(h=0.15)
+  }
+  print(betap[i_beta])
+  sapply(quantile_vecs[[i_beta]], \(x) x[adj_amount==0]) %>% round(digits=3) %>% print
+  sapply(quantile_vecs[[i_beta]], \(x) x[adj_amount==0.25]) %>% round(digits=3) %>% print
+  sapply(quantile_vecs[[i_beta]], \(x) x[adj_amount==0.5]) %>% round(digits=3) %>% print
+  sapply(quantile_vecs[[i_beta]], \(x) x[adj_amount==0.75]) %>% round(digits=3) %>% print
+  # print("")
+}
+
+
+#### FINAL WORST-CASE SCENARIO TO PUT IN THE OP PLAN:
+#### * weight adjustments of 50% & 150%
+####   - mean weight of June sample is half that of April
+####   - mean weight of December sample is 50% greater than that of April
+#### * beta parameters of 20, 25, and 5
+####   - assuming that 40%, 50%, and 10% of harvest occurs in the April, June, and December periods, respectively
+####   - 80% chance of 31-49%, 41-59% and 5-16% of harvest in the April, June, and December periods, respectively
+####   - 95% chance of 27-54%, 36-67% and 3-20% of harvest in the April, June, and December periods, respectively
+
+strat_wts <- c(4, 5, 1)   ## relative weights for each stratum
 wt_adj <- 1 + c(0, -1, 1)*0.5  ## (multiplicative) weight adjustment for each stratum?
 betap_fixed <- 20
+base_wts <- c(4, 5, 1)/4
+betap_fixed*base_wts
 nsim <- 10000
 av_wt1 <- av_wt2 <- av_wt3 <- est_mn <- rep(NA, nsim)  # initializing vectors
 for(i_sim in 1:nsim) {
@@ -256,4 +359,4 @@ for(i in 1:nsim) {
 }
 # mn_true <- sum(strat_wts_true*wt_adj*mean(C_wts)/sum(strat_wts_true))
 
-quantile(abs(est_mn-mn_true)/mn_true, .95)   # 15%
+quantile(abs(est_mn-mn_true)/mn_true, .95)   # 13.4%
