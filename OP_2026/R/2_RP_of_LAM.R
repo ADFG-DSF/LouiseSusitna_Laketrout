@@ -18,8 +18,8 @@ library(MCMCpack)
 
 lakenames <- c("Louise", "Susitna")
 lakeareas <- c(5913, 3635)
-ilake <- 1
-# ilake <- 2
+# ilake <- 1
+ilake <- 2
 
 newlake_la <- lakeareas[ilake]
 
@@ -165,15 +165,22 @@ C_wts <- justCrosswind$Weight_g
 #### * weight adjustments of 50% & 150%
 ####   - mean weight of June sample is half that of April
 ####   - mean weight of December sample is 50% greater than that of April
-#### * beta parameters of 20, 25, and 5
-####   - assuming that 40%, 50%, and 10% of harvest occurs in the April, June, and December periods, respectively
-####   - 80% chance of 31-49%, 41-59% and 5-16% of harvest in the April, June, and December periods, respectively
-####   - 95% chance of 27-54%, 36-67% and 3-20% of harvest in the April, June, and December periods, respectively
+#### * beta parameters of 25, 15, and 10
+####   - assuming that 50%, 30%, and 20% of harvest occurs in the April, June, and December periods, respectively
+####   - 80% chance of 41-59%, 22-39% and 13-27% of harvest in the April, June, and December periods, respectively
+####   - 95% chance of 36-64%, 318-43% and 10-32% of harvest in the April, June, and December periods, respectively
 
-strat_wts <- c(4, 5, 1)   ## relative weights for each stratum
+strat_wts <- c(5, 3, 2)   ## relative weights for each stratum
 wt_adj <- 1 + c(0, -1, 1)*0.5  ## (multiplicative) weight adjustment for each stratum?
 betap_fixed <- 20
+base_wts <- c(5, 3, 2)/4
+betap_fixed*base_wts
 nsim <- 10000
+
+n1 <- 100
+n2 <- 100
+n3 <- 100
+
 av_wt1 <- av_wt2 <- av_wt3 <- est_mn <- rep(NA, nsim)  # initializing vectors
 for(i_sim in 1:nsim) {
   av_wt1[i_sim] <- mean(sample(C_wts*wt_adj[1], size=n1, replace=TRUE))
