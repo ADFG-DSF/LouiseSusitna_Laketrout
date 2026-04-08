@@ -357,7 +357,7 @@ for(i_beta in seq_along(betap)) {
 #### * beta parameters of 25, 15, and 10
 ####   - assuming that 50%, 30%, and 20% of harvest occurs in the April, June, and December periods, respectively
 ####   - 80% chance of 41-59%, 22-39% and 13-27% of harvest in the April, June, and December periods, respectively
-####   - 95% chance of 36-64%, 318-43% and 10-32% of harvest in the April, June, and December periods, respectively
+####   - 95% chance of 36-64%, 18-43% and 10-32% of harvest in the April, June, and December periods, respectively
 
 strat_wts <- c(5, 3, 2)   ## relative weights for each stratum
 wt_adj <- 1 + c(0, -1, 1)*0.5  ## (multiplicative) weight adjustment for each stratum?
@@ -402,3 +402,56 @@ for(i in 1:nsim) {
 # mn_true <- sum(strat_wts_true*wt_adj*mean(C_wts)/sum(strat_wts_true))
 
 quantile(abs(est_mn-mn_true)/mn_true, .95)   # 13.0%
+
+
+
+
+## Two more supplemental worser worst-case scenarios
+## What if sample weights don't align with expected val of true proportions?
+## 1. True props centered on 50:30:20, multiple weights
+## 2. True props centered on 40:40:20, multiple weights
+strat_wts_list <- list(c(1, 1, 1),
+                       c(5, 3, 2),
+                       c(4, 4, 2),
+                       c(4, 5, 1))
+
+wt_adj <- 1 + c(0, -1, 1)*0.5  ## (multiplicative) weight adjustment for each stratum?
+betap_fixed <- 20
+base_wts_list <- list(c(5, 3, 2)/4,
+                      c(4, 4, 2)/4)
+nsim <- 10000
+
+n1 <- 100
+n2 <- 100
+n3 <- 100
+
+for(i_base in seq_along(base_wts_list)) {
+
+quantiles <- NA
+for(i_wts in seq_along(strat_wts_list)) {
+  av_wt1 <- av_wt2 <- av_wt3 <- est_mn <- rep(NA, nsim)  # initializing vectors
+  for(i_sim in 1:nsim) {
+    av_wt1[i_sim] <- mean(sample(C_wts*wt_adj[1], size=n1, replace=TRUE))
+    av_wt2[i_sim] <- mean(sample(C_wts*wt_adj[2], size=n2, replace=TRUE))
+    av_wt3[i_sim] <- mean(sample(C_wts*wt_adj[3], size=n3, replace=TRUE))
+    est_mn[i_sim] <- sum(c(av_wt1[i_sim], av_wt2[i_sim], av_wt3[i_sim]) *
+                           strat_wts_list[[i_wts]]/sum(strat_wts_list[[i_wts]]))
+  }
+  # strat_wts_true <- rep(NA, 2)
+  # strat_wts_true[1] <- rbeta(1, betap[i_amount], betap[i_amount])
+  # strat_wts_true[2] <- 1-strat_wts_true[1]
+  dirsim <- rdirichlet(nsim, betap_fixed*base_wts_list[[i_base]])
+  mn_true <- rep(NA, nsim)
+  for(i in 1:nsim) {
+    strat_wts_true <- dirsim[i,]
+    mn_true[i] <- sum(strat_wts_true*wt_adj*mean(C_wts)/sum(strat_wts_true))
+  }
+  # mn_true <- sum(strat_wts_true*wt_adj*mean(C_wts)/sum(strat_wts_true))
+
+  quantiles[i_wts] <- quantile(abs(est_mn-mn_true)/mn_true, .95)   # 13.0%
+}
+print(quantiles)
+# [1] 0.1724549 0.1298360 0.1471237 0.2440756
+# [1] 0.2513071 0.1912362 0.1393537 0.2084954
+## interp: still pretty okay for plausible scenarios
+}

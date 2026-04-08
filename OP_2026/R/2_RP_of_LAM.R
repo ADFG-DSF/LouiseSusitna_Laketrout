@@ -168,7 +168,7 @@ C_wts <- justCrosswind$Weight_g
 #### * beta parameters of 25, 15, and 10
 ####   - assuming that 50%, 30%, and 20% of harvest occurs in the April, June, and December periods, respectively
 ####   - 80% chance of 41-59%, 22-39% and 13-27% of harvest in the April, June, and December periods, respectively
-####   - 95% chance of 36-64%, 318-43% and 10-32% of harvest in the April, June, and December periods, respectively
+####   - 95% chance of 36-64%, 18-43% and 10-32% of harvest in the April, June, and December periods, respectively
 
 strat_wts <- c(5, 3, 2)   ## relative weights for each stratum
 wt_adj <- 1 + c(0, -1, 1)*0.5  ## (multiplicative) weight adjustment for each stratum?
